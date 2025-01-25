@@ -4,9 +4,7 @@ This project is a series of scripts designed to track and analyze recession-rela
 
 Requirements
 - Python Libraries:
-    pandas
-    pandas_datareader
-    matplotlib
+    pandas, pandas_datareader, matplotlib
 - Data Source: The scripts fetch data from FRED, so an internet connection is required for data retrieval.
 
 
