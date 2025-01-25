@@ -7,6 +7,10 @@ Requirements
     pandas, pandas_datareader, matplotlib
 - Data Source: The scripts fetch data from FRED, so an internet connection is required for data retrieval.
 
+## Example Chart
+![10YearMinus2Year](https://github.com/user-attachments/assets/35f275e0-5385-4e5f-b6db-ae12c08757a3)
+ 
+
 
 ## Future Improvements
 1. Advanced Analysis:
