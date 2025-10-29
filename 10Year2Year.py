@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import pandas as pd
 import pandas_datareader.data as web
 import matplotlib.pyplot as plt
