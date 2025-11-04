@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+##WIP
+
 import pandas as pd
 import yfinance as yf
 import pandas_datareader.data as web
