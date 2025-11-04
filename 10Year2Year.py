@@ -12,9 +12,10 @@ WHAT IT SHOWS
   Shaded U.S. recessions (NBER)
 
 WHY IT MATTERS
-  Negative spread (inversion) → Strong recession signal (has predicted every U.S. recession since 1955)
-  Positive → Normal yield curve (growth)
-  → Key leading indicator for Fed policy and market risk
+  When the curve inverts (spread < 0), investors have more faith in the economy 
+  2 years from now than 10 years from now — a historically reliable recession signal.
+  Positive spread → Normal growth expectations.
+  → Has predicted every U.S. recession since 1955 with zero false positives.
 
 DATA SOURCES (FRED)
   T10Y2Y: https://fred.stlouisfed.org/series/T10Y2Y   (1980–)
