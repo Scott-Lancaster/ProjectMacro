@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 import os
-os.environ['MATPLOTLIB_NO_SECURE_CODING_WARNING'] = '1'  # Suppress macOS warning
+os.environ['MATPLOTLIB_NO_SECURE_CODING_WARNING'] = '1'
 
 """
 ===============================================================================
-US UNEMPLOYMENT RATE | Dark Mode
+US UNEMPLOYMENT RATE + SAHM RULE | Dark Mode
 ===============================================================================
 
 WHAT IT SHOWS
   Monthly US unemployment rate (%)
   Shaded U.S. recessions (NBER)
+  Optional red dots = Sahm Rule triggered (3MMA ≥ +0.5 pp from 12-month low)
 
 WHY IT MATTERS
-  Unemployment rises when companies cut jobs amid slowing growth — a lagging but confirming recession signal.
-  The Fed watches it closely (dual mandate: full employment + stable prices); high levels prompt rate cuts.
-  3-month rises above 0.5% (Sahm Rule) have signaled every recession since 1950.
+  The Sahm Rule has predicted every U.S. recession since 1970 with zero false positives.
+  It signals accelerating job losses — a confirming recession indicator.
+  Current status: Safe / Near Trigger / Triggered
 
 DATA SOURCES (FRED)
-  UNRATE: https://fred.stlouisfed.org/series/UNRATE   (1948–)
-  USREC:  https://fred.stlouisfed.org/series/USREC    (1854–)
+  UNRATE: https://fred.stlouisfed.org/series/UNRATE
+  USREC:  https://fred.stlouisfed.org/series/USREC
 
-DATA FREQUENCY: Monthly (released first Friday ~8:30 AM ET)
+DATA FREQUENCY: Monthly (BLS release: 1st Friday ~8:30 AM ET | FRED update: +1–3 days)
 
 ZOOM: Set START_YEAR
 ===============================================================================
@@ -29,97 +30,90 @@ ZOOM: Set START_YEAR
 import pandas as pd
 import pandas_datareader.data as web
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# Function to print the rate of change with appropriate color
-def print_colored_rate_of_change(rate, period):
-    color = '\033[91m' if rate > 0 else '\033[92m'  # Red for positive, green for negative
-    print(f"The {period} rate of change is: {color}{rate:.2f}%\033[0m")
-
-# ———————————————— ZOOM SETTINGS ————————————————
-START_YEAR = 1950  # Set your desired start year here
+# ———————————————— OPTIONS ————————————————
+START_YEAR = 1950
+SHOW_SAHM_DOTS = False   # Set to False to hide Sahm trigger dots
 # ———————————————————————————————————————————————
 
-# Config
 start = datetime(START_YEAR, 1, 1)
 end   = datetime.now()
 
 # Fetch data
-unemployment_rate = web.DataReader('UNRATE', 'fred', start, end)
-recession         = web.DataReader('USREC',  'fred', start, end)
+unrate = web.DataReader('UNRATE', 'fred', start, end)
+recession = web.DataReader('USREC', 'fred', start, end)
 
-# Calculate rates of change
-three_month_roc = ((unemployment_rate - unemployment_rate.shift(3)) / unemployment_rate.shift(3)) * 100
-six_month_roc   = ((unemployment_rate - unemployment_rate.shift(6)) / unemployment_rate.shift(6)) * 100
-one_year_roc    = ((unemployment_rate - unemployment_rate.shift(12)) / unemployment_rate.shift(12)) * 100
+# ———————————————— SAHM RULE ————————————————
+unrate['3MMA'] = unrate['UNRATE'].rolling(3).mean()
+unrate['12M_Low'] = unrate['3MMA'].rolling(12).min().shift(1)
+unrate['Sahm_Rule'] = unrate['3MMA'] - unrate['12M_Low']
+unrate['Sahm_Trigger'] = unrate['Sahm_Rule'] >= 0.5
 
-# Print latest rates
-print_colored_rate_of_change(three_month_roc.iloc[-1].values[0], '3 month')
-print_colored_rate_of_change(six_month_roc.iloc[-1].values[0], '6 month')
-print_colored_rate_of_change(one_year_roc.iloc[-1].values[0], '1 year')
+triggers = unrate[unrate['Sahm_Trigger']].dropna()
 
-# ———————————————— DARK MODE STYLE ————————————————
+# Current Sahm status
+current_sahm = unrate['Sahm_Rule'].iloc[-1]
+current_unrate = unrate['UNRATE'].iloc[-1]
+status = "TRIGGERED" if current_sahm >= 0.5 else "Near Trigger" if current_sahm >= 0.35 else "Safe"
+
+# ———————————————— PRINT LAST 4 SAHM READINGS ————————————————
+print("\n=== LAST 4 SAHM RULE READINGS (Date | Unemployment | 3MMA | Sahm Rise) ===")
+last_4 = unrate[['UNRATE', '3MMA', 'Sahm_Rule']].tail(4)
+for date, row in last_4.iterrows():
+    print(f"{date.strftime('%b %Y')}: {row['UNRATE']:.1f}% | 3MMA = {row['3MMA']:.2f} | Sahm = {row['Sahm_Rule']:.2f} pp")
+
+if last_4.index[-1] < datetime.now() - timedelta(days=45):
+    print("(Note: Data may be stale — FRED lags after BLS releases)")
+
+# ———————————————— DARK MODE PLOT ————————————————
 plt.style.use('dark_background')
-plt.rcParams.update({
-    'figure.facecolor': '#0a0a0a',
-    'axes.facecolor':   '#0a0a0a',
-    'axes.edgecolor':   '#333333',
-    'axes.labelcolor':  'white',
-    'text.color':       'white',
-    'xtick.color':      'white',
-    'ytick.color':      'white',
-    'grid.color':       '#2a2a2a',
-    'grid.alpha':       0.3,
-    'font.size':        11,
-    'legend.facecolor': '#1a1a1a',
-    'legend.edgecolor': '#333333',
-    'legend.fontsize':  10,
-})
-
-# Plot
 fig, ax = plt.subplots(figsize=(14, 7))
 
-# Unemployment line — thinner, blue
-ax.plot(unemployment_rate.index, unemployment_rate['UNRATE'],
-        color='#4da6ff', linewidth=1.4, label='US Unemployment Rate')
+# Unemployment line
+ax.plot(unrate.index, unrate['UNRATE'], color='#4da6ff', linewidth=1.4, label='Unemployment Rate')
 
-# Recession shading — darker red
-in_recession = False
-recession_added = False
+# Optional Sahm trigger dots (no label on last one)
+if SHOW_SAHM_DOTS and not triggers.empty:
+    ax.scatter(triggers.index, triggers['UNRATE'], color='#ff4444', s=80, zorder=5,
+               edgecolors='white', linewidth=1, label='Sahm Rule Trigger')
 
+# Recession shading
+in_rec = False
+rec_start = None
+label_added = False
 for date, row in recession.iterrows():
-    if row['USREC'] == 1 and not in_recession:
-        in_recession = True
+    if row['USREC'] == 1 and not in_rec:
+        in_rec = True
         rec_start = date
-    elif row['USREC'] == 0 and in_recession:
-        in_recession = False
-        label = 'Recession' if not recession_added else ""
-        ax.axvspan(rec_start, date, color='#cc4444', alpha=0.25, label=label)
-        recession_added = True
+    elif row['USREC'] == 0 and in_rec:
+        in_rec = False
+        lbl = 'Recession' if not label_added else ""
+        ax.axvspan(rec_start, date, color='#cc4444', alpha=0.25, label=lbl)
+        label_added = True
+if in_rec:
+    lbl = 'Recession' if not label_added else ""
+    ax.axvspan(rec_start, end, color='#cc4444', alpha=0.25, label=lbl)
 
-if in_recession:
-    label = 'Recession' if not recession_added else ""
-    ax.axvspan(rec_start, end, color='#cc4444', alpha=0.25, label=label)
-
-# Title & labels
-ax.set_title(f'US Unemployment Rate ({START_YEAR}–Now)\n'
-             f'Last: {unemployment_rate["UNRATE"].iloc[-1]:.2f}%',
+# Title
+ax.set_title(f'US Unemployment Rate + Sahm Rule ({START_YEAR}–Now)\n'
+             f'Latest: {current_unrate:.2f}% | Sahm: {current_sahm:.2f} pp → {status}',
              color='white', fontsize=14, pad=20, fontweight='bold')
 ax.set_xlabel('Year', color='white')
 ax.set_ylabel('Unemployment Rate (%)', color='white')
-
-# Legend
 ax.legend(loc='upper left', framealpha=0.95)
-
-# Grid & formatting
 ax.grid(True, alpha=0.3)
 ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y'))
 ax.xaxis.set_major_locator(plt.matplotlib.dates.YearLocator(2))
 plt.xticks(rotation=45)
-
 plt.tight_layout()
 plt.show()
 
 # ———————————————— FINAL SUMMARY ————————————————
-latest = unemployment_rate.iloc[-1]['UNRATE']
-print(f"Latest: {latest:.2f}% | Data Frequency: Monthly (updated first Friday ~8:30 AM ET)")
+print(f"\nLatest Unemployment: {current_unrate:.2f}%")
+print(f"Sahm Rule: {current_sahm:.2f} pp → {status}")
+if not triggers.empty:
+    last = triggers.iloc[-1]
+    print(f"Last Sahm Trigger: {last.name.strftime('%B %Y')} ({last['Sahm_Rule']:.2f} pp)")
+else:
+    print("No Sahm triggers in this period")

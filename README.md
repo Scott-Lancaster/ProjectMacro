@@ -2,7 +2,6 @@
 ## Summary
 This project is aimed to bring key macroecoonomic trends and indicators to the masses in a free and open source way. Many economic charts are available via paid services and are rarely in one place, this initiative aims to brake down these walls and bring the metrics that matter to all interested indiviuals in real time. 
 
-
 Requirements
 - Python Libraries:
     pandas, pandas_datareader, matplotlib
