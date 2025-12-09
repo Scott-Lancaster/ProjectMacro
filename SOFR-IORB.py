@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-##WIP
 
 import os
 os.environ['MATPLOTLIB_NO_SECURE_CODING_WARNING'] = '1'  # Suppress macOS warning

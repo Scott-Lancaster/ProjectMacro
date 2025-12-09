@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-os.environ['MATPLOTLIB_NO_SECURE_CODING_WARNING'] = '1'  # Suppress macOS warning
+os.environ['MATPLOTLIB_NO_SECURE_CODING_WARNING'] = '1'
 
 """
 ===============================================================================
@@ -33,17 +33,16 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 # ———————————————— ZOOM SETTINGS ————————————————
-START_YEAR = 1995
+START_YEAR = 1980
 END_YEAR   = None  # None = today
 # ———————————————————————————————————————————————
 
-# Config
 start = datetime(START_YEAR, 1, 1)
 end   = datetime.now() if END_YEAR is None else datetime(END_YEAR, 12, 31)
 
 # Fetch data
 yield_curve = web.DataReader('T10Y2Y', 'fred', start, end)
-recession = web.DataReader('USREC', 'fred', start, end)
+recession   = web.DataReader('USREC',  'fred', start, end)
 
 # ———————————————— DARK MODE STYLE ————————————————
 plt.style.use('dark_background')
@@ -57,19 +56,18 @@ plt.rcParams.update({
     'ytick.color':      'white',
     'grid.color':       '#2a2a2a',
     'grid.alpha':       0.3,
-    'font.size':        11,
     'legend.facecolor': '#1a1a1a',
     'legend.edgecolor': '#333333',
     'legend.fontsize':  10,
 })
 
-# Plot
 fig, ax = plt.subplots(figsize=(14, 7))
 
-# Yield spread — LIGHT GREY LINE
-ax.plot(yield_curve.index, yield_curve['T10Y2Y'], color='#cccccc', linewidth=1.8, label='10Y - 2Y Spread')
+# Main spread line — thinner, elegant
+ax.plot(yield_curve.index, yield_curve['T10Y2Y'],
+        color='#cccccc', linewidth=1.4, label='10Y - 2Y Spread')
 
-# Recession shading
+# Recession shading — darker, richer red
 in_recession = False
 recession_added = False
 
@@ -80,20 +78,19 @@ for date, row in recession.iterrows():
     elif row['USREC'] == 0 and in_recession:
         in_recession = False
         label = 'Recession' if not recession_added else ""
-        ax.axvspan(rec_start, date, color='#ff6b6b', alpha=0.15, label=label)
+        ax.axvspan(rec_start, date, color='#cc4444', alpha=0.25, label=label)
         recession_added = True
 
-# Final recession
 if in_recession:
     label = 'Recession' if not recession_added else ""
-    ax.axvspan(rec_start, end, color='#ff6b6b', alpha=0.15, label=label)
+    ax.axvspan(rec_start, end, color='#cc4444', alpha=0.25, label=label)
 
-# Zero line (inversion)
-ax.axhline(0, color='#ff8c8c', linestyle='--', linewidth=1.5, alpha=0.8, label='Inversion (0%)')
+# Zero line — slightly darker red, less aggressive
+ax.axhline(0, color='#ff6b6b', linestyle='--', linewidth=1.3, alpha=0.8, label='Inversion (0%)')
 
 # Title & labels
 ax.set_title(f'10-Year minus 2-Year Treasury Yield Spread ({START_YEAR}–{END_YEAR or "Now"})\n'
-             f'Last: {yield_curve["T10Y2Y"].iloc[-1]:.2f}%', 
+             f'Last: {yield_curve["T10Y2Y"].iloc[-1]:.2f}%',
              color='white', fontsize=14, pad=20, fontweight='bold')
 ax.set_xlabel('Year', color='white')
 ax.set_ylabel('Spread (%)', color='white')

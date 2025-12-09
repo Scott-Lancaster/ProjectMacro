@@ -46,7 +46,7 @@ import requests
 # 1. CONFIG – 15 years
 # ----------------------------------------------------------------------
 end = datetime.now()
-start = end - timedelta(days=25 * 365)
+start = end - timedelta(days=15 * 365)
 fallback_start = end - timedelta(days=365)
 
 print(f"Trying date range: {start.date()} → {end.date()}")
